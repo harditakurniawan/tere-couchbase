@@ -6,7 +6,7 @@ export const SL_COUCHBASE_MODEL_METADATA = 'SL_COUCHBASE_MODEL_METADATA';
 
 export interface SlCouchbaseModelOptions {
   scope?: string; // default: _default
-  collection: string;
+  collection?: string; // default: _default
   schema?: any;
 }
 

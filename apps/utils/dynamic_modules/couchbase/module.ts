@@ -67,7 +67,7 @@ export class SlCouchbaseModule {
           )
         : undefined;
 
-      console.log('Model injected: ', model.name);
+      console.log('Model injected:', model.name);
 
       return {
         provide: MODEL_TOKEN(connectionName, model.name),
@@ -76,7 +76,7 @@ export class SlCouchbaseModule {
             cluster,
             config.bucketName,
             meta.scope || '_default',
-            meta.collection,
+            meta.collection || '_default',
             schemaInstance,
           ),
         inject: [
