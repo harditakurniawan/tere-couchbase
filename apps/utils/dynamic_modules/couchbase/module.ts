@@ -1,20 +1,10 @@
-// cb.module.ts
 import { DynamicModule, Global, Module } from '@nestjs/common';
 import { Cluster, connect } from 'couchbase';
 import { SL_COUCHBASE_MODEL_METADATA } from './decorator';
 import { SlCouchbaseRepository } from './repository';
-
-export interface SlCouchbaseConnectionOptions {
-  connectionName?: string;
-  connectionString: string;
-  bucketName: string;
-  username: string;
-  password: string;
-}
-
-const CONNECTION_TOKEN = (name: string) => `SL_COUCHBASE_CONNECTION_${name}`;
-const MODEL_TOKEN = (name: string) => `SL_COUCHBASE_MODEL_${name}`;
-const CONFIG_TOKEN = (name: string) => `SL_COUCHBASE_CONFIG_${name}`;
+import { SlCouchbaseSchema } from './schema';
+import { SlCouchbaseConnectionOptions } from './interface';
+import { CONNECTION_TOKEN, CONFIG_TOKEN, MODEL_TOKEN } from './tokens';
 
 @Global()
 @Module({})
@@ -30,25 +20,28 @@ export class SlCouchbaseModule {
   ): DynamicModule {
     const providers = optionsArray.flatMap((opt) => {
       const name = opt.name || 'default';
+      const configToken = CONFIG_TOKEN(name);
+      const connToken = CONNECTION_TOKEN(name);
 
-      // store connection config
       const configProvider = {
-        provide: CONFIG_TOKEN(name),
+        provide: configToken,
         useFactory: opt.useFactory,
         inject: opt.inject || [],
       };
 
-      // cluster provider
       const connectionProvider = {
-        provide: CONNECTION_TOKEN(name),
+        provide: connToken,
         useFactory: async (config: SlCouchbaseConnectionOptions) => {
+          console.log('Couchbase config:', config);
+
           const cluster = await connect(config.connectionString, {
             username: config.username,
             password: config.password,
           });
-          return cluster;
+
+          return cluster as Cluster;
         },
-        inject: [CONFIG_TOKEN(name)],
+        inject: [configToken],
       };
 
       return [configProvider, connectionProvider];
@@ -64,18 +57,27 @@ export class SlCouchbaseModule {
   static forFeature(models: any[], connectionName = 'default'): DynamicModule {
     const providers = models.map((model) => {
       const meta = Reflect.getMetadata(SL_COUCHBASE_MODEL_METADATA, model);
-      if (!meta) {
+      if (!meta)
         throw new Error(`Model missing @SlCouchbaseModel(): ${model.name}`);
-      }
+
+      const schemaInstance = meta.schema
+        ? new SlCouchbaseSchema(
+            meta.schema.definition || meta.schema,
+            meta.schema.opts,
+          )
+        : undefined;
+
+      console.log('Model injected: ', model.name);
 
       return {
-        provide: MODEL_TOKEN(model.name),
+        provide: MODEL_TOKEN(connectionName, model.name),
         useFactory: (cluster: Cluster, config: SlCouchbaseConnectionOptions) =>
           new SlCouchbaseRepository(
             cluster,
             config.bucketName,
             meta.scope || '_default',
-            meta.collection || '_default',
+            meta.collection,
+            schemaInstance,
           ),
         inject: [
           CONNECTION_TOKEN(connectionName),

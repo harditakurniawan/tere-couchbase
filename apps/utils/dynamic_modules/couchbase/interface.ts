@@ -1,16 +1,9 @@
-// import { Schema } from 'ottoman';
-
 export interface SlCouchbaseConnectionOptions {
   name?: string; // optional, default = 'default'
   connectionString: string;
-  bucketName: string;
-  scopeName?: string;
-  collectionName?: string;
-  username?: string;
-  password?: string;
+  bucketName: string; // global bucket for connection
+  scopeName?: string; // TODO
+  collectionName?: string; // TODO
+  username: string;
+  password: string;
 }
-
-// export type SlCouchbaseModelDefinition = {
-//   name: string;
-//   schema: Schema;
-// };

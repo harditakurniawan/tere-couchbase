@@ -1,26 +1,18 @@
 import { SlCouchbaseModel } from 'apps/utils/dynamic_modules/couchbase/decorator';
-// import { Schema } from 'ottoman';
 
-// export const LovsModel = {
-//   name: 'lovs',
-//   schema: new Schema({
-//     group_name: String,
-//     set_value: Schema.Types.Mixed, // any
-//     description: String,
-//     additional: Schema.Types.Mixed, // any
-//     created_by: Schema.Types.Mixed, // any
-//     created_at: { type: Date, default: () => new Date() },
-//     updated_at: { type: Date, default: () => new Date() },
-//     deleted_at: { type: Date, default: () => new Date() },
-//   }),
-// };
+export const LovsSchemaDef = {
+  group_name: { type: String, required: true },
+  set_value: { type: Object, required: true },
+  description: { type: Object },
+  additional: { type: Object },
+  // created_at: { type: Date, default: () => new Date() },
+  // updated_at: { type: Date, default: () => new Date() },
+  // deleted_at: { type: Date },
+};
 
 @SlCouchbaseModel({
+  // scope: '', // TODO
   collection: 'lovs',
-  schema: {
-    group_name: { type: String, required: true },
-    set_value: { type: String, required: true },
-    description: { type: String },
-  },
+  schema: { definition: LovsSchemaDef, opts: { timestamps: true } },
 })
 export class LovsModel {}
