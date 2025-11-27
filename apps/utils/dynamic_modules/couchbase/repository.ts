@@ -8,6 +8,7 @@ export class SlCouchbaseRepository<T extends BaseDocument> {
   private collectionName: string;
   private bucketName: string;
   private schema?: SlCouchbaseSchema;
+  private typeName?: string;
 
   constructor(
     private readonly cluster: Cluster,
@@ -15,13 +16,17 @@ export class SlCouchbaseRepository<T extends BaseDocument> {
     scopeName: string,
     collectionName: string,
     schema?: SlCouchbaseSchema,
+    typeName?: string,
   ) {
     this.bucketName = bucketName;
     this.scopeName = scopeName || '_default';
     this.collectionName = collectionName || '_default';
     this.schema = schema;
+    this.typeName = typeName || null;
+
     const bucket = cluster.bucket(bucketName);
     const scope = scopeName ? bucket.scope(scopeName) : bucket.defaultScope();
+
     this.collection = scope.collection(collectionName);
   }
 
@@ -30,6 +35,10 @@ export class SlCouchbaseRepository<T extends BaseDocument> {
    */
   async create(data: Partial<T>, id?: string) {
     const doc: any = { ...data };
+
+    if (this.typeName && !doc._type) {
+      doc._type = this.typeName;
+    }
 
     if (this.schema) this.schema.applyDefaults(doc);
     if (!id) id = uuidv4();
@@ -57,7 +66,12 @@ export class SlCouchbaseRepository<T extends BaseDocument> {
    * find by filter
    */
   async find(filter: Record<string, any> = {}, options: any = {}) {
+    if (this.typeName) {
+      filter._type = this.typeName;
+    }
+
     const whereClause = this.buildWhereClause(filter);
+
     const sort = options.sort ? `ORDER BY ${options.sort}` : '';
     const limit = options.limit ? `LIMIT ${options.limit}` : '';
     const offset = options.offset ? `OFFSET ${options.offset}` : '';
@@ -144,6 +158,10 @@ export class SlCouchbaseRepository<T extends BaseDocument> {
 
     const merged = { ...existing, ...patch };
 
+    if (this.typeName) {
+      merged._type = existing._type || this.typeName;
+    }
+
     if (this.schema) this.schema.touchUpdatedAt(merged);
     if (this.schema) this.schema.validate(merged);
 
@@ -164,6 +182,10 @@ export class SlCouchbaseRepository<T extends BaseDocument> {
    * count document by filter
    */
   async count(filter: Record<string, any> = {}) {
+    if (this.typeName) {
+      filter._type = this.typeName;
+    }
+
     const where = this.buildWhereClause(filter);
     const q = `SELECT COUNT(1) AS total FROM \`${this.bucketName}\`.\`${this.scopeName}\`.\`${this.collectionName}\` ${where};`;
     const r = await this.cluster.query(q);

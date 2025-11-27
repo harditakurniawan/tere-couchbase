@@ -13,6 +13,7 @@ export const LovsSchemaDef = {
 @SlCouchbaseModel({
   // scope: '', // TODO
   collection: 'lovs', // TODO
+  // type: 'lovs', // TODO
   schema: { definition: LovsSchemaDef, opts: { timestamps: true } },
 })
 export class LovsModel {}

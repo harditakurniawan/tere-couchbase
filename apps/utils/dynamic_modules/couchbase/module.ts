@@ -78,6 +78,7 @@ export class SlCouchbaseModule {
             meta.scope || '_default',
             meta.collection || '_default',
             schemaInstance,
+            model.type,
           ),
         inject: [
           CONNECTION_TOKEN(connectionName),

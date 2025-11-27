@@ -7,6 +7,7 @@ export const SL_COUCHBASE_MODEL_METADATA = 'SL_COUCHBASE_MODEL_METADATA';
 export interface SlCouchbaseModelOptions {
   scope?: string; // default: _default
   collection?: string; // default: _default
+  type?: string; // optional if you want filter with _type like ottoman
   schema?: any;
 }
 
