@@ -32,23 +32,28 @@ export class SlCouchbaseRepository<T extends BaseDocument> {
     this.collection = scope.collection(collectionName);
   }
 
+  // https://www.mongodb.com/docs/manual/reference/method/objectid/#mongodb-method-ObjectId
   private createObjectId(): string {
     const time = Math.floor(Date.now() / 1000);
     const id = new Uint8Array(12);
 
+    // 4 bytes = timestamps (epoch)
     id[0] = (time >>> 24) & 0xff;
     id[1] = (time >>> 16) & 0xff;
     id[2] = (time >>> 8) & 0xff;
     id[3] = time & 0xff;
 
+    // 5 bytes = random unique key
     crypto.getRandomValues(id.subarray(4, 9));
 
     this.counter = (this.counter + 1) % 0xffffff;
 
+    // 3 bytes = counter / incremental
     id[9] = (this.counter >>> 16) & 0xff;
     id[10] = (this.counter >>> 8) & 0xff;
     id[11] = this.counter & 0xff;
 
+    // combine all bytes
     return [...id].map((b) => b.toString(16).padStart(2, '0')).join('');
   }
 
