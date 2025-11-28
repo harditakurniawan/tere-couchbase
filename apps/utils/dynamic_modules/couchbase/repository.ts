@@ -1,5 +1,5 @@
 import { Cluster, Collection, QueryResult } from 'couchbase';
-import { v7 as uuidv7 } from 'uuid';
+// import { v7 as uuidv7 } from 'uuid';
 import { BaseDocument, SlCouchbaseSchema } from './schema';
 
 export class SlCouchbaseRepository<T extends BaseDocument> {
@@ -9,6 +9,8 @@ export class SlCouchbaseRepository<T extends BaseDocument> {
   private bucketName: string;
   private schema?: SlCouchbaseSchema;
   private typeName?: string;
+
+  private counter = Math.floor(Math.random() * 0xffffff);
 
   constructor(
     private readonly cluster: Cluster,
@@ -30,65 +32,24 @@ export class SlCouchbaseRepository<T extends BaseDocument> {
     this.collection = scope.collection(collectionName);
   }
 
-  /**
-   * create new document
-   */
-  async create(data: Partial<T>, id?: string) {
-    const doc: any = { ...data };
+  private createObjectId(): string {
+    const time = Math.floor(Date.now() / 1000);
+    const id = new Uint8Array(12);
 
-    if (this.typeName && !doc._type) {
-      doc._type = this.typeName;
-    }
+    id[0] = (time >>> 24) & 0xff;
+    id[1] = (time >>> 16) & 0xff;
+    id[2] = (time >>> 8) & 0xff;
+    id[3] = time & 0xff;
 
-    if (this.schema) this.schema.applyDefaults(doc);
-    if (!id) id = uuidv7();
-    if (this.schema) this.schema.validate(doc);
+    crypto.getRandomValues(id.subarray(4, 9));
 
-    await this.collection.insert(id, doc);
+    this.counter = (this.counter + 1) % 0xffffff;
 
-    return { id, ...doc };
-  }
+    id[9] = (this.counter >>> 16) & 0xff;
+    id[10] = (this.counter >>> 8) & 0xff;
+    id[11] = this.counter & 0xff;
 
-  /**
-   * find document by id
-   */
-  async findOneById(id: string) {
-    try {
-      const res = await this.collection.get(id);
-      return res.value;
-    } catch (err: any) {
-      if (err?.message?.includes('document not found')) return null;
-      throw err;
-    }
-  }
-
-  /**
-   * find by filter
-   */
-  async find(filter: Record<string, any> = {}, options: any = {}) {
-    if (this.typeName) {
-      filter._type = this.typeName;
-    }
-
-    const whereClause = this.buildWhereClause(filter);
-
-    const sort = options.sort ? `ORDER BY ${options.sort}` : '';
-    const limit = options.limit ? `LIMIT ${options.limit}` : '';
-    const offset = options.offset ? `OFFSET ${options.offset}` : '';
-    const query = `
-      SELECT META().id as _id, ${this.collectionName}.*
-      FROM \`${this.bucketName}\`.\`${this.scopeName}\`.\`${this.collectionName}\` AS ${this.collectionName}
-      ${whereClause}
-      ${sort}
-      ${limit}
-      ${offset};
-    `;
-    const opts = options.consistency
-      ? { scanConsistency: <any>options.consistency }
-      : {};
-
-    const result: QueryResult = await this.cluster.query(query, opts);
-    return result.rows;
+    return [...id].map((b) => b.toString(16).padStart(2, '0')).join('');
   }
 
   /**
@@ -150,6 +111,68 @@ export class SlCouchbaseRepository<T extends BaseDocument> {
   }
 
   /**
+   * create new document
+   */
+  async create(data: Partial<T>, id?: string) {
+    const doc: any = { ...data };
+
+    if (this.typeName && !doc._type) {
+      doc._type = this.typeName;
+    }
+
+    if (this.schema) this.schema.applyDefaults(doc);
+    // if (!id) id = uuidv7();
+    if (!id) id = this.createObjectId();
+    if (this.schema) this.schema.validate(doc);
+
+    await this.collection.insert(id, doc);
+
+    return { id, ...doc };
+  }
+
+  /**
+   * find document by id
+   */
+  async findOneById(id: string) {
+    try {
+      const res = await this.collection.get(id);
+      return res.value;
+    } catch (err: any) {
+      if (err?.message?.includes('document not found')) return null;
+      throw err;
+    }
+  }
+
+  /**
+   * find by filter
+   */
+  async find(filter: Record<string, any> = {}, options: any = {}) {
+    if (this.typeName) {
+      filter._type = this.typeName;
+    }
+
+    const whereClause = this.buildWhereClause(filter);
+
+    const sort = options.sort ? `ORDER BY ${options.sort}` : '';
+    const limit = options.limit ? `LIMIT ${options.limit}` : '';
+    const offset = options.offset ? `OFFSET ${options.offset}` : '';
+    const query = `
+      SELECT META().id as _id, ${this.collectionName}.*
+      FROM \`${this.bucketName}\`.\`${this.scopeName}\`.\`${this.collectionName}\` AS ${this.collectionName}
+      ${whereClause}
+      ${sort}
+      ${limit}
+      ${offset};
+    `;
+    const opts = options.consistency
+      ? { scanConsistency: <any>options.consistency }
+      : {};
+
+    const result: QueryResult = await this.cluster.query(query, opts);
+    return result.rows;
+  }
+
+  /**
    * update existing document
    */
   async update(id: string, patch: Partial<T>) {
@@ -193,5 +216,6 @@ export class SlCouchbaseRepository<T extends BaseDocument> {
     return r.rows[0]?.total ?? 0;
   }
 
-  public aggregate = async (queryString: string) => await this.collection.scope.query(queryString);
+  public aggregate = async (queryString: string) =>
+    await this.collection.scope.query(queryString);
 }
