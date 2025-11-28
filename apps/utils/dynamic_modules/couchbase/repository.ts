@@ -1,5 +1,5 @@
 import { Cluster, Collection, QueryResult } from 'couchbase';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { BaseDocument, SlCouchbaseSchema } from './schema';
 
 export class SlCouchbaseRepository<T extends BaseDocument> {
@@ -41,7 +41,7 @@ export class SlCouchbaseRepository<T extends BaseDocument> {
     }
 
     if (this.schema) this.schema.applyDefaults(doc);
-    if (!id) id = uuidv4();
+    if (!id) id = uuidv7();
     if (this.schema) this.schema.validate(doc);
 
     await this.collection.insert(id, doc);
@@ -192,4 +192,6 @@ export class SlCouchbaseRepository<T extends BaseDocument> {
 
     return r.rows[0]?.total ?? 0;
   }
+
+  public aggregate = async (queryString: string) => await this.collection.scope.query(queryString);
 }

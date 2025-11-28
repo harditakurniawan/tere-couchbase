@@ -11,7 +11,7 @@ export const LovsSchemaDef = {
 };
 
 @SlCouchbaseModel({
-  // scope: '', // TODO
+  scope: 'slrevamp', // TODO
   collection: 'lovs', // TODO
   // type: 'lovs', // TODO
   schema: { definition: LovsSchemaDef, opts: { timestamps: true } },

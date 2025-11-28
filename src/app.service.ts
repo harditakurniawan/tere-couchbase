@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectCouchbaseModel } from 'apps/utils/dynamic_modules/couchbase/decorator';
 import { LovsModel } from './lovs.model';
 import { SlCouchbaseRepository } from 'apps/utils/dynamic_modules/couchbase/repository';
+import { CreateLovDto } from './dto';
 
 @Injectable()
 export class AppService {
@@ -10,8 +11,13 @@ export class AppService {
     private readonly lovsModel: SlCouchbaseRepository<LovsModel>,
   ) {}
 
-  create(dto: any) {
-    return this.lovsModel.create(dto);
+  create(dto: CreateLovDto) {
+    try {
+      return this.lovsModel.create(dto);
+    } catch (error) {
+      console.log('error', error);
+      throw error;
+    }
   }
 
   findAll() {
