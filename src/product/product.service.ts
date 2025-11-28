@@ -84,7 +84,7 @@ export class ProductsService {
         throw new NotFoundException('Product not found');
       }
 
-      const row = result.rows[0];
+      const row = result.rows;
 
       return row
     } catch (err) {
