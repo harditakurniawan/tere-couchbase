@@ -1,4 +1,4 @@
-import { Cluster, Collection, QueryResult } from 'couchbase';
+import { Cluster, Collection, QueryOptions, QueryResult } from 'couchbase';
 // import { v7 as uuidv7 } from 'uuid';
 import { BaseDocument, SlCouchbaseSchema } from './schema';
 
@@ -113,6 +113,16 @@ export class SlCouchbaseRepository<T extends BaseDocument> {
     });
 
     return 'WHERE ' + parts.join(' AND ');
+  }
+
+  /**
+   * Raw Query
+   */
+  async rawQuery<R = any>(query: string, params?: any[]): Promise<R[]> {
+    const options: QueryOptions = params ? { parameters: params } : {};
+    const result = await this.cluster.query(query, options);
+
+    return result.rows as R[];
   }
 
   /**
